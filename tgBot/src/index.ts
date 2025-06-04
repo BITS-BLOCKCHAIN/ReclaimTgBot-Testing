@@ -352,7 +352,7 @@ app.post('/receive-proofs', async (req,res):Promise<any>=>{
             else reason = "GitHub account does not meet the minimum requirements (3+ months old, 5+ repos, 50+ contributions in last year).";
             
             await telegramBot.sendMessage(userId, 
-                `❌ Verification failed: ${reason}\n\nPlease try again after ensuring your GitHub account meets the requirements.`
+                `❌ Verification failed: ${reason}\n\n DM @akashneelesh for manual verification.`
             )
             msgIdMap.delete(userId);
             allMsgIds.delete(userId);
