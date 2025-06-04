@@ -143,7 +143,7 @@ telegramBot.on("new_chat_members", async (msg) => {
                 'Hey! The Core Stars Group is gated via zkTLS based on your GitHub Reputation.\n\n' +
                 'To join, please make sure you meet the following requirements:\n\n' +
                 '- More than 5 public repositories\n' +
-                '- More than 50 GitHub contributions\n' +
+                '- More than 30 GitHub contributions\n' +
                 '- GitHub account active for more than 3 months\n\n' +
                 'Important: You must verify within 5 minutes after clicking the button below.\n' +
                 'If you do not verify in time, the bot will automatically block you from joining the group.\n\n', {
