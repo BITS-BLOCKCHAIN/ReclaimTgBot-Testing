@@ -187,8 +187,10 @@ telegramBot.onText(/\/start (.+)/, async (msg, match) => {
             'Welcome! Are you using Telegram on a mobile device or desktop?', {
             reply_markup: {
                 inline_keyboard: [
-                    [{ text: "📱 Mobile", callback_data: "device_mobile" }],
-                    [{ text: "🖥️ Desktop", callback_data: "device_desktop" }]
+                    [{ text: "📱 Android Device ", callback_data: "device_mobile_android" }],
+                    [{ text: "📱 IOS Device", callback_data: "device_mobile_ios" }],
+                    [{ text: "🖥️ Desktop", callback_data: "device_desktop" }],
+
                 ]
             }
         });
