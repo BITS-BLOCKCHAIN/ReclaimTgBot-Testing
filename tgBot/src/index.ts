@@ -17,7 +17,7 @@ const PROVIDER_ID = process.env.PROVIDER_ID;
 const TG_GROUP_URL = process.env.TG_GROUP_URL || "https://t.me/+6f1w067DMHxlNDE9";
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000"; 
 const VERIFICATION_TIMEOUT = 5 * 60;
-const BAN_DURATION = 3600;
+const BAN_DURATION = 600;
 const BOT_NAME="Fatty_07Bot"
 
 if (!TG_TOKEN || !APP_ID || !APP_SECRET || !PROVIDER_ID) {
@@ -349,7 +349,7 @@ app.post('/receive-proofs', async (req,res):Promise<any>=>{
             console.log(`User ${userId} verification failed banning them from chat`,finalTime);
             let reason = "";
             if (!isValidProof) reason = "Invalid proof.";
-            else reason = "GitHub account does not meet the minimum requirements (3+ months old, 5+ repos, 300+ contributions in last year).";
+            else reason = "GitHub account does not meet the minimum requirements (3+ months old, 5+ repos, 50+ contributions in last year).";
             
             await telegramBot.sendMessage(userId, 
                 `❌ Verification failed: ${reason}\n\nPlease try again after ensuring your GitHub account meets the requirements.`
