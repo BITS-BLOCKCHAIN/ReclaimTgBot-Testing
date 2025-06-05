@@ -39,7 +39,6 @@ async function setupWebhook() {
         console.log("Deleted existing webhook");
  
         await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log("the group url is", TG_GROUP_URL);
         const result = await telegramBot.setWebHook(WEBHOOK_URL,{
             allowed_updates:[
                "message", 
@@ -110,7 +109,6 @@ telegramBot.on('polling_error', (error) => {
 });
 
 telegramBot.on("chat_join_request", async(msg)=>{
-    console.log("The entry tried");
     console.log("Welcome new member to the tg group", msg.chat.id, msg.from.id)
 })
 
@@ -118,8 +116,6 @@ telegramBot.on("new_chat_members", async (msg) => {
     const chatId = msg.chat.id;
     const newMembers = msg.new_chat_members;
     console.log("NEW MEMBER EVENT TRIGGERED");
-    console.log("Chat ID:", chatId);
-    console.log("New members:", newMembers);
     
     if (!newMembers || newMembers.length === 0) return;
   
@@ -235,7 +231,6 @@ telegramBot.on('callback_query', async (callbackQuery) => {
         reclaimProofRequest.setAppCallbackUrl(`${BASE_URL}/receive-proofs?userId=${userId}&chatId=${groupChatId}`);
         const requestURL = await reclaimProofRequest.getRequestUrl();
         const qrBuffer=await QRCode.toBuffer(requestURL)
-             console.log(qrBuffer)
         const msgSent=await telegramBot.sendPhoto(userId, qrBuffer, {
                     caption: `Scan this QR code to verify via zkTLS :\n`,
         });
@@ -288,7 +283,7 @@ telegramBot.on('callback_query', async (callbackQuery) => {
             if(!message) return;          
     }else{
         const msgSent=await telegramBot.sendMessage(personalChatId, 
-            'Which type of device do you have?', {
+            "Scan the QR to verify via zkTLS.\n\n Before that, please confirm which device you're using:", {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: "📱 Android Device ", callback_data: "desktop_device_mobile_android" }],
@@ -302,8 +297,6 @@ telegramBot.on('callback_query', async (callbackQuery) => {
         }
            
     }
-    console.log("NExt step is deleting messages",msgIdMap, groupChatId, userId)
-    
     } catch (err) {
         console.error("Error creating verification request:", err);
         const msgSent=await telegramBot.sendMessage(userId, "❌ Error creating verification request. Please try again later.");
@@ -321,21 +314,17 @@ telegramBot.on('callback_query', async (callbackQuery) => {
 app.post('/receive-proofs', async (req,res):Promise<any>=>{
     const chatId = Number(req.query.chatId);
     const userId = Number(req.query.userId);
-    console.log()
     try {
         if (!chatId || !userId) {
             return res.status(400).send("Missing chatId or userId");
         }
-        console.log("i am receiving something",chatId,userId)
         const decodedBody = decodeURIComponent(req.body);
         const proof = JSON.parse(decodedBody);
-        console.log("The proof is",proof);
         const params=(JSON.parse(proof.claimData.context)).extractedParameters;
         const {URL_PARAMS_1, contributions}=params;
         console.log("THe values are",URL_PARAMS_1, contributions)
         const isValidProof = await verifyProof(proof);
         const response=await axios.get(`https://api.github.com/users/${URL_PARAMS_1}`);
-        console.log(response.data)
         const data=response.data;
         const publicData:publicData={
             created_at:data.created_at,
@@ -377,10 +366,10 @@ app.post('/receive-proofs', async (req,res):Promise<any>=>{
             msgIdMap.delete(userId);
             allMsgIds.delete(userId);
             verificationSession.delete(userId);
-            return res.redirect(TG_GROUP_URL);
+            return res.status(200).redirect(TG_GROUP_URL);
         }else{
-            const unixTime=new Date().getMilliseconds();
-            const finalTime=(Math.floor(unixTime/1000)) + 3600;
+            const unixTime =Math.floor(Date.now() / 1000);
+            const finalTime=unixTime + 3600;
             await telegramBot.banChatMember(chatId, userId, {
                 until_date:finalTime,
                 revoke_messages:true
@@ -391,11 +380,12 @@ app.post('/receive-proofs', async (req,res):Promise<any>=>{
             else reason = "GitHub account does not meet the minimum requirements (3+ months old, 5+ repos, 30+ contributions in last year).";
             
             await telegramBot.sendMessage(userId, 
-                `❌ Verification failed: ${reason}\n\n DM @akashneelesh for manual verification.`
-            )
+                `❌ Verification failed: ${reason}\n\nIf you believe this is an error, please contact @akashneelesh for manual verification.`
+              )              
             msgIdMap.delete(userId);
             allMsgIds.delete(userId);
             verificationSession.delete(userId);
+            return res.status(200).send("OK")
         }
     } catch (error) {
         await telegramBot.restrictChatMember(chatId, userId, {
@@ -425,6 +415,7 @@ app.post('/receive-proofs', async (req,res):Promise<any>=>{
       if(existingMsgs){
           existingMsgs.push({msgId:msgSent.message_id, chatId:chatId})
       }
+      return res.status(500).send("Internal server error during verification");
     }
 })
 
