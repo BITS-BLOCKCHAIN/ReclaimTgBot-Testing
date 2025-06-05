@@ -208,12 +208,43 @@ telegramBot.onText(/\/start (.+)/, async (msg, match) => {
 
 })
 
+//Click on Continue app (for android fucker) with a photo avinash will send
+//same for app clip
+
 telegramBot.on('callback_query', async (callbackQuery) => {
     const data = callbackQuery.data;
     const userId = callbackQuery.from.id;
     const groupChatId=msgIdMap.get(userId)?.groupChatId;
     const personalChatId=verificationSession.get(userId)?.chatId;
     const groupMsgId = msgIdMap.get(userId)?.msgId;
+    if (!data || !(data.toLowerCase().startsWith("device_") || data.toLowerCase().startsWith("desktop_"))) return;
+   
+    try {
+        await telegramBot.answerCallbackQuery(callbackQuery.id);
+    } catch (error) {
+        console.error("Failed to answer callback query:", error);
+    }
+
+    if(data.toLowerCase().startsWith("desktop_")){
+        const deviceType = data.toLowerCase().includes("android") ? "android" : "ios";
+        const reclaimProofRequest = await ReclaimProofRequest.init(APP_ID, APP_SECRET, PROVIDER_ID, {
+            device:deviceType,
+            useAppClip: true
+        });
+        reclaimProofRequest.setRedirectUrl(TG_GROUP_URL);
+        reclaimProofRequest.setAppCallbackUrl(`${BASE_URL}/receive-proofs?userId=${userId}&chatId=${groupChatId}`);
+        const requestURL = await reclaimProofRequest.getRequestUrl();
+        const qrBuffer=await QRCode.toBuffer(requestURL)
+             console.log(qrBuffer)
+        const msgSent=await telegramBot.sendPhoto(userId, qrBuffer, {
+                    caption: `Scan this QR code to verify via zkTLS :\n`,
+        });
+        const existingMsgs=allMsgIds.get(userId);
+        if(existingMsgs && personalChatId ){
+        existingMsgs.push({msgId:msgSent.message_id, chatId:personalChatId})
+        }
+    }else{
+    const deviceType= data?.toLowerCase().includes("ios") ? "ios" : data?.toLowerCase().includes("android") ? "android" : "desktop"; 
     if(groupMsgId  && groupChatId ){
         try {
             await telegramBot.deleteMessage(groupChatId, groupMsgId);
@@ -223,21 +254,17 @@ telegramBot.on('callback_query', async (callbackQuery) => {
                 allMsgIds.set(userId, updatedMsgs);
             }
         } catch (err) {
-            console.error(`❌ Failed to delete message ${groupMsgId} in chat ${groupChatId}:`, err);
+            console.error(`❌ Failed to delete message ${groupMsgId} in chat ${groupChatId}:`);
         }
     }else{
         console.log("Didn't find the message to be deleted!!")
     }
-    console.log("THe group chat id is",groupChatId)
-    console.log("The personal chat id is",personalChatId)
-    if (!data || !data.startsWith("device_")) return;
     if(!userId || !personalChatId || !groupChatId) return; 
     
-    console.log("The required chat id is",personalChatId, groupChatId)
     if (isNaN(groupChatId)) {
     return telegramBot.sendMessage(userId, "Could not extract group information from the link.");
     }
-    const deviceType= data?.toLowerCase().includes("ios") ? "ios" : data?.toLowerCase().includes("android") ? "android" : "desktop"; 
+  
     const reclaimProofRequest = await ReclaimProofRequest.init(APP_ID, APP_SECRET, PROVIDER_ID, {
         device:deviceType,
         useAppClip: "desktop" !== deviceType
@@ -260,15 +287,20 @@ telegramBot.on('callback_query', async (callbackQuery) => {
             const message=msgIdMap.get(userId);
             if(!message) return;          
     }else{
-            const qrBuffer=await QRCode.toBuffer(requestURL)
-            console.log(qrBuffer)
-            const msgSent=await telegramBot.sendPhoto(userId, qrBuffer, {
-                    caption: `Scan this QR code to verify via zkTLS :\n`,
-            });
-            const existingMsgs=allMsgIds.get(userId);
-            if(existingMsgs){
-            existingMsgs.push({msgId:msgSent.message_id, chatId:personalChatId})
+        const msgSent=await telegramBot.sendMessage(personalChatId, 
+            'Which type of device do you have?', {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "📱 Android Device ", callback_data: "desktop_device_mobile_android" }],
+                    [{ text: "📱 IOS Device", callback_data: "desktop_device_mobile_ios" }],
+                ]
             }
+        });
+        const existingMsgs=allMsgIds.get(userId);
+        if(existingMsgs){
+            existingMsgs.push({msgId:msgSent.message_id, chatId:personalChatId})
+        }
+           
     }
     console.log("NExt step is deleting messages",msgIdMap, groupChatId, userId)
     
@@ -279,6 +311,7 @@ telegramBot.on('callback_query', async (callbackQuery) => {
         if(existingMsgs){
             existingMsgs.push({msgId:msgSent.message_id, chatId:personalChatId})
         }
+    }
     }
 });
 
