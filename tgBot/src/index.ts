@@ -268,11 +268,14 @@ telegramBot.on('callback_query', async (callbackQuery) => {
     reclaimProofRequest.setAppCallbackUrl(`${BASE_URL}/receive-proofs?userId=${userId}&chatId=${groupChatId}`);
     const requestURL = await reclaimProofRequest.getRequestUrl();
 
+    console.log("The Request url is ",requestURL,deviceType);
+
     try {
         if(data?.toLowerCase().includes("mobile")){
+            const headerMessage=data?.toLowerCase().includes("android") ? "\n\n After Opening the link, click on the option to Open in App" : "";
             const msgSent=await telegramBot.sendMessage(userId, "Click below to verify:", {
                     reply_markup: {
-                      inline_keyboard: [[{ text: "Click To Begin Verification", url:requestURL }]],
+                      inline_keyboard: [[{ text: `Click To Begin Verification ${headerMessage}`, url:requestURL }]],
                     },
             });
             const existingMsgs=allMsgIds.get(userId);
