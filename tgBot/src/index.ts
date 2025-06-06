@@ -272,11 +272,14 @@ telegramBot.on('callback_query', async (callbackQuery) => {
 
     try {
         if(data?.toLowerCase().includes("mobile")){
-            const headerMessage=data?.toLowerCase().includes("android") ? "\n\n After Opening the link, click on the option to Open in App" : "";
-            const msgSent=await telegramBot.sendMessage(userId, "Click below to verify:", {
-                    reply_markup: {
-                      inline_keyboard: [[{ text: `Click To Begin Verification ${headerMessage}`, url:requestURL }]],
-                    },
+            const headerMessage = data?.toLowerCase().includes("android")
+            ? "\n\nAfter opening the link, click on the option to Open in App."
+            : "";
+            const fullMessage = `Click below to verify:${headerMessage}`;
+            const msgSent = await telegramBot.sendMessage(userId, fullMessage, {
+              reply_markup: {
+                inline_keyboard: [[{ text: "Click To Begin Verification", url: requestURL }]],
+              },
             });
             const existingMsgs=allMsgIds.get(userId);
             if(existingMsgs){
